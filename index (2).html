@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Algoritmos de Ordenamiento</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        /* CONTENEDOR DE LOS 10 CUADRITOS */
+        .array-display {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        /* ESTILO DE CADA CUADRITO CON NÚMERO */
+        .number-box {
+            width: 80px;
+            height: 80px;
+            background: #4CAF50;
+            border: 3px solid white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: all 0.5s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        /* COLOR NORMAL */
+        .number-box.normal {
+            background: #4CAF50;
+            transform: scale(1);
+        }
+
+        /* COLOR CUANDO SE COMPARAN */
+        .number-box.comparing {
+            background: #ff9800;
+            transform: scale(1.2);
+            box-shadow: 0 0 25px #ff9800;
+        }
+
+        /* COLOR CUANDO SE INTERCAMBIAN */
+        .number-box.swapping {
+            background: #f44336;
+            transform: scale(1.2);
+            box-shadow: 0 0 25px #f44336;
+        }
+
+        /* COLOR CUANDO YA ESTÁ ORDENADO */
+        .number-box.sorted {
+            background: #2196F3;
+            transform: scale(1.1);
+        }
+
+        /* CONTROLES */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        button, select {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* CONTROL DE VELOCIDAD */
+        .speed-control {
+            margin: 25px 0;
+            font-size: 1.1em;
+        }
+
+        .speed-control input {
+            width: 300px;
+            margin: 0 15px;
+        }
+
+        /* PANEL DE INFORMACIÓN */
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1em;
+        }
+
+        .info-panel p {
+            font-weight: bold;
+        }
+
+        /* EXPLICACIÓN */
+        .explanation {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            line-height: 1.6;
+            margin-top: 30px;
+            font-size: 1.1em;
+        }
+
+        .current-step {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 Visualizador de Algoritmos de Ordenamiento</h1>
+        
+        <!-- Paso actual -->
+        <div class="current-step" id="currentStep">
+            Haz clic en "Nuevos Números" para comenzar
+        </div>
+        
+        <!-- Aquí se verán los 10 cuadritos con números -->
+        <div class="array-display" id="arrayDisplay">
+            <!-- Los 10 cuadritos aparecerán aquí -->
+        </div>
+        
+        <div class="controls">
+            <button id="generateArray">Nuevos Números</button>
+            <select id="algorithmSelect">
+                <option value="bubbleSort">Bubble Sort</option>
+                <option value="selectionSort">Selection Sort</option>
+                <option value="insertionSort">Insertion Sort</option>
+            </select>
+            <button id="startSort">Ordenar</button>
+            <button id="stepByStep">Paso a Paso</button>
+            <button id="resetSort">Reiniciar</button>
+        </div>
+
+        <div class="speed-control">
+            <label>Velocidad: <span id="speedValue">MUY LENTO</span></label>
+            <input type="range" id="speedSlider" min="1" max="5" value="1">
+        </div>
+
+        <div class="info-panel">
+            <p>Comparaciones: <span id="comparisons">0</span></p>
+            <p>Intercambios: <span id="swaps">0</span></p>
+            <p>Pasos: <span id="steps">0</span></p>
+        </div>
+
+        <div class="explanation">
+            <h3>¿Cómo funciona?</h3>
+            <p id="algorithmExplanation">Selecciona un algoritmo y haz clic en Ordenar para ver cómo se ordenan los números.</p>
+        </div>
+    </div>
+
+    <script>
+        class SortingVisualizer {
+            constructor() {
+                this.array = [];
+                this.originalArray = [];
+                this.isSorting = false;
+                this.speed = 1000; // MUCHO más lento - 1 segundo
+                this.comparisons = 0;
+                this.swaps = 0;
+                this.steps = 0;
+                this.stepByStepMode = false;
+                this.waitingForStep = false;
+                
+                this.initializeEventListeners();
+                this.generateNewArray();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('generateArray').addEventListener('click', () => {
+                    this.generateNewArray();
+                });
+
+                document.getElementById('startSort').addEventListener('click', () => {
+                    this.stepByStepMode = false;
+                    this.startSorting();
+                });
+
+                document.getElementById('stepByStep').addEventListener('click', () => {
+                    this.stepByStepMode = true;
+                    this.startSorting();
+                });
+
+                document.getElementById('resetSort').addEventListener('click', () => {
+                    this.resetArray();
+                });
+
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    const speeds = [1500, 1000, 500, 200, 50];
+                    const labels = ['MUY LENTO', 'LENTO', 'NORMAL', 'RÁPIDO', 'MUY RÁPIDO'];
+                    this.speed = speeds[e.target.value - 1];
+                    document.getElementById('speedValue').textContent = labels[e.target.value - 1];
+                });
+
+                document.getElementById('algorithmSelect').addEventListener('change', (e) => {
+                    this.updateAlgorithmExplanation(e.target.value);
+                });
+
+                // Para modo paso a paso
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' && this.waitingForStep) {
+                        this.waitingForStep = false;
+                    }
+                });
+            }
+
+            generateNewArray() {
+                // Generar 10 números aleatorios entre 1 y 99
+                this.array = Array.from({length: 10}, () => 
+                    Math.floor(Math.random() * 99) + 1
+                );
+                this.originalArray = [...this.array];
+                this.renderArray();
+                this.resetStats();
+                this.updateAlgorithmExplanation('bubbleSort');
+                this.updateStepMessage("Nuevos números generados. Selecciona un algoritmo y haz clic en Ordenar.");
+            }
+
+            renderArray() {
+                const container = document.getElementById('arrayDisplay');
+                container.innerHTML = '';
+                
+                // Crear 10 cuadritos con números
+                this.array.forEach((value, index) => {
+                    const box = document.createElement('div');
+                    box.className = 'number-box normal';
+                    box.textContent = value;
+                    box.id = `box-${index}`;
+                    box.title = `Número: ${value}`;
+                    container.appendChild(box);
+                });
+            }
+
+            resetArray() {
+                this.array = [...this.originalArray];
+                this.renderArray();
+                this.resetStats();
+                this.isSorting = false;
+                this.updateStepMessage("Array reiniciado a su estado original.");
+            }
+
+            async startSorting() {
+                if (this.isSorting) return;
+                
+                this.isSorting = true;
+                this.steps = 0;
+                this.updateStats();
+                
+                const algorithm = document.getElementById('algorithmSelect').value;
+                
+                switch(algorithm) {
+                    case 'bubbleSort':
+                        await this.bubbleSort();
+                        break;
+                    case 'selectionSort':
+                        await this.selectionSort();
+                        break;
+                    case 'insertionSort':
+                        await this.insertionSort();
+                        break;
+                }
+                
+                this.markAllAsSorted();
+                this.isSorting = false;
+                this.updateStepMessage("¡Ordenamiento completado!");
+            }
+
+            // 🔥 BUBBLE SORT - MUCHO más lento y paso a paso
+            async bubbleSort() {
+                const n = this.array.length;
+                this.updateStepMessage("Iniciando Bubble Sort...");
+                await this.delay();
+                
+                for (let i = 0; i < n - 1; i++) {
+                    this.updateStepMessage(`Pasada ${i + 1} de ${n - 1}`);
+                    await this.delay();
+                    
+                    for (let j = 0; j < n - i - 1; j++) {
+                        this.steps++;
+                        this.comparisons++;
+                        this.updateStats();
+                        
+                        // PASO 1: Mostrar que vamos a comparar
+                        this.updateStepMessage(`Comparando posición ${j} (${this.array[j]}) con posición ${j + 1} (${this.array[j + 1]})`);
+                        this.highlightBoxes([j, j + 1], 'comparing');
+                        await this.delay();
+                        
+                        if (this.array[j] > this.array[j + 1]) {
+                            // PASO 2: Mostrar que necesitan intercambiarse
+                            this.updateStepMessage(`¡${this.array[j]} > ${this.array[j + 1]}! Necesitan intercambiarse`);
+                            this.highlightBoxes([j, j + 1], 'swapping');
+                            await this.delay();
+                            
+                            // PASO 3: Hacer el intercambio
+                            [this.array[j], this.array[j + 1]] = [this.array[j + 1], this.array[j]];
+                            this.swaps++;
+                            this.updateStats();
+                            this.updateStepMessage(`Intercambiando: ${this.array[j + 1]} ↔ ${this.array[j]}`);
+                            this.renderArray();
+                            this.highlightBoxes([j, j + 1], 'swapping');
+                            await this.delay();
+                            
+                        } else {
+                            this.updateStepMessage(`${this.array[j]} ≤ ${this.array[j + 1]}. No se intercambian`);
+                            await this.delay();
+                        }
+                        
+                        // PASO 4: Quitar el resaltado
+                        this.highlightBoxes([j, j + 1], 'normal');
+                        await this.delay();
+                    }
+                    // Marcar el último número como ordenado
+                    this.markAsSorted(n - i - 1);
+                    this.updateStepMessage(`Posición ${n - i - 1} ahora está en su lugar correcto`);
+                    await this.delay();
+                }
+                // Marcar el primer número como ordenado
+                this.markAsSorted(0);
+            }
+
+            // 🎯 SELECTION SORT - también más lento
+            async selectionSort() {
+                const n = this.array.length;
+                this.updateStepMessage("Iniciando Selection Sort...");
+                await this.delay();
+                
+                for (let i = 0; i < n - 1; i++) {
+                    let minIndex = i;
+                    this.updateStepMessage(`Buscando el mínimo desde la posición ${i}`);
+                    this.highlightBoxes([i], 'comparing');
+                    await this.delay();
+                    
+                    for (let j = i + 1; j < n; j++) {
+                        this.steps++;
+                        this.comparisons++;
+                        this.updateStats();
+                        
+                        this.updateStepMessage(`Comparando ${this.array[minIndex]} (mínimo actual) con ${this.array[j]}`);
+                        this.highlightBoxes([minIndex, j], 'comparing');
+                        await this.delay();
+                        
+                        if (this.array[j] < this.array[minIndex]) {
+                            this.updateStepMessage(`¡${this.array[j]} es menor! Nuevo mínimo encontrado`);
+                            this.removeHighlight([minIndex]);
+                            minIndex = j;
+                            this.highlightBoxes([minIndex], 'comparing');
+                            await this.delay();
+                        } else {
+                            this.updateStepMessage(`${this.array[j]} no es menor. Continuando...`);
+                            await this.delay();
+                        }
+                        
+                        this.removeHighlight([j]);
+                    }
+                    
+                    if (minIndex !== i) {
+                        this.updateStepMessage(`Intercambiando ${this.array[i]} con el mínimo ${this.array[minIndex]}`);
+                        [this.array[i], this.array[minIndex]] = [this.array[minIndex], this.array[i]];
+                        this.swaps++;
+                        this.updateStats();
+                        
+                        this.highlightBoxes([i, minIndex], 'swapping');
+                        this.renderArray();
+                        await this.delay();
+                    } else {
+                        this.updateStepMessage(`El mínimo ya está en la posición correcta`);
+                        await this.delay();
+                    }
+                    
+                    this.markAsSorted(i);
+                    this.updateStepMessage(`Posición ${i} ahora contiene el elemento correcto`);
+                    await this.delay();
+                }
+                this.markAsSorted(n - 1);
+            }
+
+            // ⚡ FUNCIONES DE UTILIDAD
+            async delay() {
+                if (this.stepByStepMode) {
+                    this.waitingForStep = true;
+                    this.updateStepMessage(this.getCurrentStepMessage() + " - Presiona ESPACIO para continuar");
+                    while (this.waitingForStep) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                } else {
+                    return new Promise(resolve => setTimeout(resolve, this.speed));
+                }
+            }
+
+            highlightBoxes(indices, className) {
+                indices.forEach(index => {
+                    const box = document.getElementById(`box-${index}`);
+                    if (box) {
+                        box.className = `number-box ${className}`;
+                    }
+                });
+            }
+
+            removeHighlight(indices) {
+                indices.forEach(index => {
+                    const box = document.getElementById(`box-${index}`);
+                    if (box) {
+                        box.className = 'number-box normal';
+                    }
+                });
+            }
+
+            markAsSorted(index, className = 'sorted') {
+                const box = document.getElementById(`box-${index}`);
+                if (box) {
+                    box.className = `number-box ${className}`;
+                }
+            }
+
+            markAllAsSorted() {
+                for (let i = 0; i < this.array.length; i++) {
+                    this.markAsSorted(i);
+                }
+            }
+
+            updateStats() {
+                document.getElementById('comparisons').textContent = this.comparisons;
+                document.getElementById('swaps').textContent = this.swaps;
+                document.getElementById('steps').textContent = this.steps;
+            }
+
+            resetStats() {
+                this.comparisons = 0;
+                this.swaps = 0;
+                this.steps = 0;
+                this.updateStats();
+            }
+
+            updateStepMessage(message) {
+                document.getElementById('currentStep').textContent = message;
+            }
+
+            getCurrentStepMessage() {
+                return document.getElementById('currentStep').textContent;
+            }
+
+            updateAlgorithmExplanation(algorithm) {
+                const explanations = {
+                    bubbleSort: "BUBBLE SORT: Compara elementos adyacentes y los intercambia si están en orden incorrecto. Repite este proceso hasta que la lista esté ordenada. Es simple pero ineficiente para listas grandes.",
+                    selectionSort: "SELECTION SORT: Encuentra el elemento más pequeño y lo coloca al inicio. Luego encuentra el siguiente más pequeño y lo coloca en segunda posición, y así sucesivamente.",
+                    insertionSort: "INSERTION SORT: Construye la lista ordenada un elemento a la vez. Toma cada elemento y lo inserta en la posición correcta dentro de la porción ya ordenada."
+                };
+                
+                document.getElementById('algorithmExplanation').textContent = 
+                    explanations[algorithm] || "Selecciona un algoritmo para ver su explicación...";
+            }
+        }
+
+        // 🎬 Inicializar la aplicación cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            new SortingVisualizer();
+        });
+    </script>
+</body>
+</html>
